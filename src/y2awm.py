@@ -308,7 +308,13 @@ class yabaiQuick:
         self.moveWindow(self.focusWindowId_, destination)
 
     def windowCreated(self, windowId):
-        pass
+        #print(windowId, type(windowId), self.spaceIdxToWindowIds_[self.focusSpaceIdx_])
+        if windowId in self.spaceIdxToWindowIds_[self.focusSpaceIdx_]:
+            #print('removed:', windowId)
+            self.spaceIdxToWindowIds_[self.focusSpaceIdx_].remove(windowId)
+        self.spaceIdxToWindowIds_[self.focusSpaceIdx_].append(windowId)
+        #print(len(self.spaceIdxToWindowIds_[self.focusSpaceIdx_]))
+        self.arrange()
 
 def percentOrPercentAdjustment(value):
     firstChar = value[0]
@@ -330,7 +336,7 @@ def main():
     parser.add_argument('-f', '--focus', help='change focus window', choices=['n', 'next', 'p', 'prev'])
     parser.add_argument('-l', '--layout', help='layout windows with: left(main), right(main), columns, disabled', choices=['l', 'left', 'r', 'right', 'c', 'columns', 'd', 'disabled'])
     parser.add_argument('-m', '--move', help='move focused window: west, east, north, south', choices=['w', 'west', 'e', 'east', 'n', 'north', 's', 'south'])
-    parser.add_argument('-wc', '--window_created', help='window created: pass window id and arrange based on new window.')
+    parser.add_argument('-wc', '--window_created', help='window created: pass window id and arrange based on new window.', type=int)
     parser.add_argument('-p', '--percent', help='percent that main window occupies (only useful for left and right layouts) (prefix with \'+\' or \'-\' to adjust from current value)', type=percentOrPercentAdjustment)
     args = parser.parse_args()
 
