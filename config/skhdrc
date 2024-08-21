@@ -1,0 +1,41 @@
+# change window focus
+alt - j: ${HOME}/local/scripts/y2awm.py --focus next
+alt - k: ${HOME}/local/scripts/y2awm.py --focus prev
+
+# force arrangement
+alt - a: ${HOME}/local/scripts/y2awm.py --arrange
+
+# change layout
+:: layout @
+alt - d; layout
+layout < c: ${HOME}/local/scripts/y2awm.py --layout columns; skhd -k "x"
+layout < l: ${HOME}/local/scripts/y2awm.py --layout left; skhd -k "x"
+layout < r: ${HOME}/local/scripts/y2awm.py --layout right; skhd -k "x"
+layout < d: ${HOME}/local/scripts/y2awm.py --layout disabled; skhd -k "x"
+layout < e: ${HOME}/local/scripts/y2awm.py --layout even; skhd -k "x"
+layout < x; default
+
+# adjust percentage
+alt - h: ${HOME}/local/scripts/y2awm.py --percent -5
+alt - l: ${HOME}/local/scripts/y2awm.py --percent +5
+
+# TODO: move windows
+alt + shift - h: ${HOME}/local/scripts/y2awm.py --move west
+alt + shift - l: ${HOME}/local/scripts/y2awm.py --move east
+alt + shift - j: ${HOME}/local/scripts/y2awm.py --move south
+alt + shift - k: ${HOME}/local/scripts/y2awm.py --move north
+
+# move window to another desktop
+# TODO: Place window last
+alt + shift - 1: yabai -m window --space 1; ${HOME}/local/scripts/y2awm.py --arrange; ${HOME}/local/scripts/y2awm.py --arrange_desktop 1
+alt + shift - 2: yabai -m window --space 2; ${HOME}/local/scripts/y2awm.py --arrange; ${HOME}/local/scripts/y2awm.py --arrange_desktop 2
+alt + shift - 3: yabai -m window --space 3; ${HOME}/local/scripts/y2awm.py --arrange; ${HOME}/local/scripts/y2awm.py --arrange_desktop 3
+alt + shift - 4: yabai -m window --space 4; ${HOME}/local/scripts/y2awm.py --arrange; ${HOME}/local/scripts/y2awm.py --arrange_desktop 4
+alt + shift - 5: yabai -m window --space 5; ${HOME}/local/scripts/y2awm.py --arrange; ${HOME}/local/scripts/y2awm.py --arrange_desktop 5
+alt + shift - 6: yabai -m window --space 6; ${HOME}/local/scripts/y2awm.py --arrange; ${HOME}/local/scripts/y2awm.py --arrange_desktop 6
+alt + shift - 7: yabai -m window --space 7; ${HOME}/local/scripts/y2awm.py --arrange; ${HOME}/local/scripts/y2awm.py --arrange_desktop 7
+alt + shift - 8: yabai -m window --space 8; ${HOME}/local/scripts/y2awm.py --arrange; ${HOME}/local/scripts/y2awm.py --arrange_desktop 8
+alt + shift - 9: yabai -m window --space 9; ${HOME}/local/scripts/y2awm.py --arrange; ${HOME}/local/scripts/y2awm.py --arrange_desktop 9
+
+# TODO: add methods to pick workspace (desktop) beyond defualts ctrl-number
+
