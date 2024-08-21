@@ -138,7 +138,11 @@ class yabaiQuick:
         for space in self.spaces_:
             if space['has-focus']:
                 self.focusSpaceIdx_ = space['index']
-            windowIds = space['windows']
+            # only include visible windows
+            windowIds = []
+            for windowId in space['windows']:
+                if self.windowIdToProperties_[windowId]['is-visible']:
+                    windowIds.append(windowId)
             windowIds.sort(key=lambda windowId: (self.windowIdToProperties_[windowId]['frame']['x'], self.windowIdToProperties_[windowId]['frame']['y']))
             self.spaceIdxToWindowIds_[space['index']] = windowIds
 
