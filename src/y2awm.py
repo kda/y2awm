@@ -151,7 +151,10 @@ class yabaiQuick:
             for windowId in space['windows']:
                 if self.windowIdToProperties_[windowId]['is-visible']:
                     windowIds.append(windowId)
-            windowIds.sort(key=lambda windowId: (self.windowIdToProperties_[windowId]['frame']['x'], self.windowIdToProperties_[windowId]['frame']['y']))
+            windowIds.sort(key=lambda windowId: (self.windowIdToProperties_[windowId]['frame']['y'], self.windowIdToProperties_[windowId]['frame']['x']))
+            #print('==> space', space['index'])
+            #for winId in windowIds:
+            #    print(winId, self.windowIdToProperties_[winId]['frame']['x'], self.windowIdToProperties_[winId]['frame']['y'])
             self.spaceIdxToWindowIds_[space['index']] = windowIds
 
     def __send(self, args):
@@ -356,7 +359,35 @@ class yabaiQuick:
                     windowIds[idx], windowIds[idx + 1] = windowIds[idx + 1], windowIds[idx]
                     self.arrange()
         elif dl.isEven():
-            pass
+            x = self.windowIdToProperties_[windowId]['frame']['x']
+            y = self.windowIdToProperties_[windowId]['frame']['y']
+            if destination[0] == 'w':
+                swapIdx = idx - 1
+                swapId = windowIds[swapIdx]
+                #print('w', idx, windowId, swapIdx, swapId, x, self.windowIdToProperties_[swapId]['frame']['x'], y, self.windowIdToProperties_[swapId]['frame']['y'])
+                if swapIdx >= 0 and x > self.windowIdToProperties_[swapId]['frame']['x'] and y == self.windowIdToProperties_[swapId]['frame']['y']:
+                    windowIds[idx], windowIds[idx - 1] = windowIds[idx - 1], windowIds[idx]
+                    self.arrange()
+            elif destination[0] == 'e':
+                swapIdx = idx + 1
+                swapId = windowIds[swapIdx]
+                if idx < (len(windowIds) - 1) and x < self.windowIdToProperties_[swapId]['frame']['x'] and y == self.windowIdToProperties_[swapId]['frame']['y']:
+                    windowIds[idx], windowIds[swapIdx] = windowIds[swapIdx], windowIds[idx]
+                    self.arrange()
+            elif destination[0] == 'n':
+                for swapIdx  in range(idx - 1, -1, -1):
+                    swapId = windowIds[swapIdx]
+                    if self.windowIdToProperties_[swapId]['frame']['y'] < y and x == self.windowIdToProperties_[swapId]['frame']['x']:
+                        windowIds[idx], windowIds[swapIdx] = windowIds[swapIdx], windowIds[idx]
+                        self.arrange()
+                        break
+            elif destination[0] == 's':
+                for swapIdx  in range(idx + 1, len(windowIds)):
+                    swapId = windowIds[swapIdx]
+                    if y < self.windowIdToProperties_[swapId]['frame']['y'] and x == self.windowIdToProperties_[swapId]['frame']['x']:
+                        windowIds[idx], windowIds[swapIdx] = windowIds[swapIdx], windowIds[idx]
+                        self.arrange()
+                        break
 
     def moveFocusedWindow(self, destination):
         self.moveWindow(self.focusWindowId_, destination)
