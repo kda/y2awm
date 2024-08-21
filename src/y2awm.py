@@ -58,7 +58,7 @@ class desktopLayout:
 class configFile:
     def __init__(self):
         self.desktopLayouts_ = {}
-        self.filename_ = os.path.join(os.environ['HOME'], '.config/y2aw/config.json')
+        self.filename_ = os.path.join(os.environ['HOME'], '.config/y2awm/config.json')
         self.__load()
 
     def __load(self):
