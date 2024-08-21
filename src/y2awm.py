@@ -15,6 +15,7 @@ class desktopLayout:
         left = auto()
         right = auto()
         columns = auto()
+        even = auto()
         disabled = auto()
 
         @staticmethod
@@ -25,6 +26,10 @@ class desktopLayout:
                 return desktopLayout.Layout.right
             elif layout == 'columns':
                 return desktopLayout.Layout.columns
+            elif layout == 'even':
+                return desktopLayout.Layout.even
+            elif layout == 'disabled':
+                return desktopLayout.Layout.disabled
             else:
                 return desktopLayout.Layout.unknown
 
@@ -42,6 +47,9 @@ class desktopLayout:
     @staticmethod
     def fromJson(d):
         return desktopLayout(desktopLayout.Layout.fromStr(d['layout']), d['percent'])
+
+    def isEven(self):
+        return self.layout_ == self.Layout.even
 
     def isColumns(self):
         return self.layout_ == self.Layout.columns
@@ -192,7 +200,7 @@ class yabaiQuick:
             return
         self.__focusWindow(nextWindowId)
 
-    def arrangeSpaceIdx(self, spaceIdx):
+    def arrangeSpaceIdx(self, spaceIdx, placeFocusWindow=False):
         windowIds = self.spaceIdxToWindowIds_[spaceIdx]
         if len(windowIds) == 0:
             return
@@ -200,6 +208,15 @@ class yabaiQuick:
             self.__grid(windowIds[0], f'1:1:0:0:1:1')
             return
         dl = self.configFile_.getDesktopLayout(spaceIdx)
+        #print('dl:', dl)
+        if dl.isDisabled():
+            return
+        if placeFocusWindow and self.focusWindowId_ in windowIds:
+            windowIds.remove(self.focusWindowId_)
+            if dl.isRight():
+                windowIds.append(self.focusWindowId_)
+            else:
+                windowIds.insert(0, self.focusWindowId_)
         if dl.isColumns():
             cols = len(windowIds)
             for idx in range(cols):
@@ -216,9 +233,42 @@ class yabaiQuick:
             self.__grid(windowIds[-1], f'{rows}:100:{width}:0:{dl.percent_}:{rows}')
             for idx in range(len(windowIds) - 1):
                 self.__grid(windowIds[idx], f'{rows}:100:0:{idx}:{width}:1')
+        elif dl.isEven():
+            windowCount = len(windowIds)
+            rows = 2
+            columns = 1
+            while (rows * columns) < windowCount:
+                if columns < rows:
+                    columns += 1
+                else:
+                    rows += 1
+            windowIdx = 0
+            rowIdx = 0
+            colIdx = 0
+            gridColCount = columns
+            # position first few rows horizontally
+            #oddWindowCount = windowCount % int(rows * columns)
+            oddColCount = windowCount % columns
+            if oddColCount != 0:
+                gridColCount = oddColCount * columns
+                while windowIdx < oddColCount:
+                    width = int(gridColCount / oddColCount)
+                    self.__grid(windowIds[windowIdx], f'{rows}:{gridColCount}:{int(windowIdx * width)}:0:{width}:1')
+                    windowIdx += 1
+                rowIdx += 1
+            # position remaining windows evenly
+            width = int(gridColCount / columns)
+            while windowIdx < windowCount:
+                self.__grid(windowIds[windowIdx], f'{rows}:{gridColCount}:{int(colIdx * width)}:{rowIdx}:{width}:1')
+                colIdx += 1
+                if colIdx == columns:
+                    rowIdx += 1
+                    colIdx = 0
+                windowIdx += 1
 
-    def arrange(self):
-        self.arrangeSpaceIdx(self.focusSpaceIdx_)
+
+    def arrange(self, placeFocusWindow=False):
+        self.arrangeSpaceIdx(self.focusSpaceIdx_, placeFocusWindow)
 
     def setLayout(self, layout):
         if layout[0] == 'c':
@@ -229,7 +279,9 @@ class yabaiQuick:
             self.configFile_.setDesktopLayout(self.focusSpaceIdx_, desktopLayout.Layout.right)
         elif layout[0] == 'd':
             self.configFile_.setDesktopLayout(self.focusSpaceIdx_, desktopLayout.Layout.disabled)
-        self.arrange()
+        elif layout[0] == 'e':
+            self.configFile_.setDesktopLayout(self.focusSpaceIdx_, desktopLayout.Layout.even)
+        self.arrange(True)
 
     def setPercent(self, percent):
         dl = self.configFile_.getDesktopLayout(self.focusSpaceIdx_)
@@ -303,6 +355,8 @@ class yabaiQuick:
                 if idx < (len(windowIds) - 2):
                     windowIds[idx], windowIds[idx + 1] = windowIds[idx + 1], windowIds[idx]
                     self.arrange()
+        elif dl.isEven():
+            pass
 
     def moveFocusedWindow(self, destination):
         self.moveWindow(self.focusWindowId_, destination)
@@ -334,7 +388,7 @@ def main():
     parser.add_argument('-ad', '--arrange_desktop', help='arrange windows according to current layout in specified desktop', choices=[str(id + 1) for id in range(len(yq.spaces_))])
     parser.add_argument('-d', '--debug', help='debug mode', action='store_true')
     parser.add_argument('-f', '--focus', help='change focus window', choices=['n', 'next', 'p', 'prev'])
-    parser.add_argument('-l', '--layout', help='layout windows with: left(main), right(main), columns, disabled', choices=['l', 'left', 'r', 'right', 'c', 'columns', 'd', 'disabled'])
+    parser.add_argument('-l', '--layout', help='layout windows with: left(main), right(main), columns, even, disabled', choices=['l', 'left', 'r', 'right', 'c', 'columns', 'd', 'disabled', 'e', 'even'])
     parser.add_argument('-m', '--move', help='move focused window: west, east, north, south', choices=['w', 'west', 'e', 'east', 'n', 'north', 's', 'south'])
     parser.add_argument('-wc', '--window_created', help='window created: pass window id and arrange based on new window.', type=int)
     parser.add_argument('-p', '--percent', help='percent that main window occupies (only useful for left and right layouts) (prefix with \'+\' or \'-\' to adjust from current value)', type=percentOrPercentAdjustment)
