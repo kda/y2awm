@@ -249,16 +249,17 @@ class yabaiQuick:
             rowIdx = 0
             colIdx = 0
             gridColCount = columns
-            # position first few rows horizontally
-            #oddWindowCount = windowCount % int(rows * columns)
-            oddColCount = windowCount % columns
-            if oddColCount != 0:
-                gridColCount = oddColCount * columns
-                while windowIdx < oddColCount:
-                    width = int(gridColCount / oddColCount)
-                    self.__grid(windowIds[windowIdx], f'{rows}:{gridColCount}:{int(windowIdx * width)}:0:{width}:1')
+
+            # first few rows may have a few less items
+            while (windowCount - windowIdx) % columns != 0:
+                # needlessly calculated multiple times for some layouts
+                gridColCount =  columns * (columns - 1)
+                for column in range(columns - 1):
+                    width = int(gridColCount / (columns - 1))
+                    self.__grid(windowIds[windowIdx], f'{rows}:{gridColCount}:{int(column * width)}:{rowIdx}:{width}:1')
                     windowIdx += 1
                 rowIdx += 1
+
             # position remaining windows evenly
             width = int(gridColCount / columns)
             while windowIdx < windowCount:
@@ -359,6 +360,7 @@ class yabaiQuick:
                     windowIds[idx], windowIds[idx + 1] = windowIds[idx + 1], windowIds[idx]
                     self.arrange()
         elif dl.isEven():
+            # TODO: fix problems when number of columns vary (len(windowIds) % (columns * rows) != 0)
             x = self.windowIdToProperties_[windowId]['frame']['x']
             y = self.windowIdToProperties_[windowId]['frame']['y']
             if destination[0] == 'w':
