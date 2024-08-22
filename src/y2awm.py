@@ -149,6 +149,9 @@ class yabaiQuick:
             # only include visible windows
             windowIds = []
             for windowId in space['windows']:
+                # skip dialogs
+                if self.windowIdToProperties_[windowId]['subrole'] == 'AXDialog':
+                    continue
                 if self.windowIdToProperties_[windowId]['is-visible']:
                     windowIds.append(windowId)
             windowIds.sort(key=lambda windowId: (self.windowIdToProperties_[windowId]['frame']['y'], self.windowIdToProperties_[windowId]['frame']['x']))
