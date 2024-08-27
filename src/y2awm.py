@@ -125,10 +125,12 @@ class yabaiQuick:
     def __purge(self):
         self.spaces_ = []
         self.windows_ = []
+        self.displays_ = []
         self.focusSpaceIdx_ = None
         self.spaceIdxToWindowIds_ = {}
         self.windowIdToProperties_ = {}
         self.focusWindowId_ = None
+        self.focusDisplayIdx_ = None
 
     def __load(self):
         # only do this once
@@ -159,6 +161,12 @@ class yabaiQuick:
             #for winId in windowIds:
             #    print(winId, self.windowIdToProperties_[winId]['frame']['x'], self.windowIdToProperties_[winId]['frame']['y'])
             self.spaceIdxToWindowIds_[space['index']] = windowIds
+        # displays
+        self.displays_ = json.loads(self.__displays())
+        for display in self.displays_:
+            if display['has-focus']:
+                self.focusDisplayIdx_ = display['index']
+                # also, use the right config
 
     def __send(self, args):
         allArgs = [self.binName_, self.parameter_] + args
@@ -175,6 +183,9 @@ class yabaiQuick:
 
     def __window(self, args):
         self.__send(['window'] + args)
+
+    def __displays(self):
+        return self.__query(['--displays'])
 
     def __spaces(self):
         return self.__query(['--spaces'])
