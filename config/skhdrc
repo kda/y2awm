@@ -37,5 +37,13 @@ alt + shift - 7: yabai -m window --space 7; ${HOME}/local/scripts/y2awm.py --arr
 alt + shift - 8: yabai -m window --space 8; ${HOME}/local/scripts/y2awm.py --arrange; ${HOME}/local/scripts/y2awm.py --arrange_desktop 8
 alt + shift - 9: yabai -m window --space 9; ${HOME}/local/scripts/y2awm.py --arrange; ${HOME}/local/scripts/y2awm.py --arrange_desktop 9
 
+# Quick Size Windows
+# TODO: add method to put window back (requires storing original location)
+alt - f: ${HOME}/local/scripts/y2awm.py --size full
+alt - 0x21: ${HOME}/local/scripts/y2awm.py --size left
+alt - 0x1E: ${HOME}/local/scripts/y2awm.py --size right
+alt + shift - t: ${HOME}/local/scripts/y2awm.py --size top
+alt + shift - b: ${HOME}/local/scripts/y2awm.py --size bottom
+
 # TODO: add methods to pick workspace (desktop) beyond defualts ctrl-number
 

@@ -408,6 +408,21 @@ class yabaiQuick:
     def moveFocusedWindow(self, destination):
         self.moveWindow(self.focusWindowId_, destination)
 
+    def sizeAndPositionWindow(self, windowId, positionAndSize):
+        if positionAndSize[0] == 'f':
+            self.__grid(windowId, f'1:1:0:0:1:1')
+        elif positionAndSize[0] == 'l':
+            self.__grid(windowId, f'1:2:0:0:1:1')
+        elif positionAndSize[0] == 'r':
+            self.__grid(windowId, f'1:2:1:0:1:1')
+        elif positionAndSize[0] == 't':
+            self.__grid(windowId, f'2:1:0:0:1:1')
+        elif positionAndSize[0] == 'b':
+            self.__grid(windowId, f'2:1:0:1:1:1')
+
+    def sizeAndPositionFocusedWindow(self, positionAndSize):
+        self.sizeAndPositionWindow(self.focusWindowId_, positionAndSize)
+
     def windowCreated(self, windowId):
         #print(windowId, type(windowId), self.spaceIdxToWindowIds_[self.focusSpaceIdx_])
         if windowId in self.spaceIdxToWindowIds_[self.focusSpaceIdx_]:
@@ -437,8 +452,9 @@ def main():
     parser.add_argument('-f', '--focus', help='change focus window', choices=['n', 'next', 'p', 'prev'])
     parser.add_argument('-l', '--layout', help='layout windows with: left(main), right(main), columns, even, disabled', choices=['l', 'left', 'r', 'right', 'c', 'columns', 'd', 'disabled', 'e', 'even'])
     parser.add_argument('-m', '--move', help='move focused window: west, east, north, south', choices=['w', 'west', 'e', 'east', 'n', 'north', 's', 'south'])
-    parser.add_argument('-wc', '--window_created', help='window created: pass window id and arrange based on new window.', type=int)
     parser.add_argument('-p', '--percent', help='percent that main window occupies (only useful for left and right layouts) (prefix with \'+\' or \'-\' to adjust from current value)', type=percentOrPercentAdjustment)
+    parser.add_argument('-s', '--size', help='size (and position) window quickly: full(screen), left(half), right(half), top(half), bottom(half) (Note: "full(screen)" is not the same as MacOS Fullscreen, but rather "whole" screen, but still a normal window.)', choices=['f', 'full', 'l', 'left', 'r', 'right', 't', 'top', 'b', 'bottom'])
+    parser.add_argument('-wc', '--window_created', help='window created: pass window id and arrange based on new window.', type=int)
     args = parser.parse_args()
 
     if args.debug:
@@ -456,6 +472,8 @@ def main():
         yq.moveFocusedWindow(args.move)
     elif args.percent is not None:
         yq.setPercent(args.percent)
+    elif args.size is not None:
+        yq.sizeAndPositionFocusedWindow(args.size)
     elif args.window_created is not None:
         yq.windowCreated(args.window_created)
     else:
