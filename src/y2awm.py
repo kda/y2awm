@@ -118,24 +118,31 @@ class yabaiQuick:
     def __init__(self):
         self.binName_ = '/usr/local/bin/yabai'
         self.parameter_ = '-m'
-        self.configFile_ = configFile()
         self.__purge()
         self.__load()
+        self.configFile_ = configFile()
 
     def __purge(self):
+        self.displays_ = []
         self.spaces_ = []
         self.windows_ = []
-        self.displays_ = []
+        self.configFile_ = None
+        self.focusDisplayIdx_ = None
         self.focusSpaceIdx_ = None
+        self.focusWindowId_ = None
         self.spaceIdxToWindowIds_ = {}
         self.windowIdToProperties_ = {}
-        self.focusWindowId_ = None
-        self.focusDisplayIdx_ = None
 
     def __load(self):
         # only do this once
-        if len(self.spaces_) > 0:
+        if len(self.displays_) > 0:
             return
+        # displays
+        self.displays_ = json.loads(self.__displays())
+        for display in self.displays_:
+            if display['has-focus']:
+                self.focusDisplayIdx_ = display['index']
+                # also, use the right config
         # load from queries
         self.windows_ = json.loads(self.__windows())
         # walk windows
@@ -161,12 +168,6 @@ class yabaiQuick:
             #for winId in windowIds:
             #    print(winId, self.windowIdToProperties_[winId]['frame']['x'], self.windowIdToProperties_[winId]['frame']['y'])
             self.spaceIdxToWindowIds_[space['index']] = windowIds
-        # displays
-        self.displays_ = json.loads(self.__displays())
-        for display in self.displays_:
-            if display['has-focus']:
-                self.focusDisplayIdx_ = display['index']
-                # also, use the right config
 
     def __send(self, args):
         allArgs = [self.binName_, self.parameter_] + args
