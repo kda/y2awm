@@ -88,7 +88,7 @@ class configFile:
         for (displayReference, spaceIdxToDesktopLayoutMap) in configInput.items():
             self.config_[displayReference] = {}
             for (spaceIdx, dl) in spaceIdxToDesktopLayoutMap.items():
-                self.config_[displayReference][spaceIdx] = desktopLayout.fromJson(dl)
+                self.config_[displayReference][int(spaceIdx)] = desktopLayout.fromJson(dl)
 
     def __write(self):
         configOutput = {}
@@ -162,7 +162,7 @@ class yabaiQuick:
         self.spaces_ = json.loads(self.__spaces())
         for space in self.spaces_:
             if space['has-focus']:
-                self.focusSpaceIdx_ = space['index']
+                self.focusSpaceIdx_ = int(space['index'])
             # only include visible windows
             windowIds = []
             for windowId in space['windows']:
@@ -172,9 +172,6 @@ class yabaiQuick:
                 if self.windowIdToProperties_[windowId]['is-visible']:
                     windowIds.append(windowId)
             windowIds.sort(key=lambda windowId: (self.windowIdToProperties_[windowId]['frame']['y'], self.windowIdToProperties_[windowId]['frame']['x']))
-            #print('==> space', space['index'])
-            #for winId in windowIds:
-            #    print(winId, self.windowIdToProperties_[winId]['frame']['x'], self.windowIdToProperties_[winId]['frame']['y'])
             self.spaceIdxToWindowIds_[space['index']] = windowIds
 
     def __send(self, args):
@@ -210,7 +207,7 @@ class yabaiQuick:
 
     def __generateDisplayReference(self, spaceIdx):
         display = self.spaceIdxToDisplay_[spaceIdx]
-        return f'{display["uuid"]}_{display["frame"]["w"]}x{display["frame"]["h"]}'
+        return f'{display["uuid"]}_{int(display["frame"]["w"])}x{int(display["frame"]["h"])}'
 
     def __getDesktopLayout(self, spaceIdx):
         return self.configFile_.getDesktopLayout(self.__generateDisplayReference(spaceIdx), spaceIdx)
@@ -247,7 +244,6 @@ class yabaiQuick:
             self.__grid(windowIds[0], f'1:1:0:0:1:1')
             return
         dl = self.__getDesktopLayout(spaceIdx)
-        #print('dl:', dl)
         if dl.isDisabled():
             return
         if placeFocusWindow and self.focusWindowId_ in windowIds:
@@ -402,7 +398,6 @@ class yabaiQuick:
             if destination[0] == 'w':
                 swapIdx = idx - 1
                 swapId = windowIds[swapIdx]
-                #print('w', idx, windowId, swapIdx, swapId, x, self.windowIdToProperties_[swapId]['frame']['x'], y, self.windowIdToProperties_[swapId]['frame']['y'])
                 if swapIdx >= 0 and x > self.windowIdToProperties_[swapId]['frame']['x'] and y == self.windowIdToProperties_[swapId]['frame']['y']:
                     windowIds[idx], windowIds[idx - 1] = windowIds[idx - 1], windowIds[idx]
                     self.arrange()
@@ -446,12 +441,9 @@ class yabaiQuick:
         self.sizeAndPositionWindow(self.focusWindowId_, positionAndSize)
 
     def windowCreated(self, windowId):
-        #print(windowId, type(windowId), self.spaceIdxToWindowIds_[self.focusSpaceIdx_])
         if windowId in self.spaceIdxToWindowIds_[self.focusSpaceIdx_]:
-            #print('removed:', windowId)
             self.spaceIdxToWindowIds_[self.focusSpaceIdx_].remove(windowId)
         self.spaceIdxToWindowIds_[self.focusSpaceIdx_].append(windowId)
-        #print(len(self.spaceIdxToWindowIds_[self.focusSpaceIdx_]))
         self.arrange()
 
 def percentOrPercentAdjustment(value):
