@@ -37,6 +37,7 @@ class desktopLayout:
         self.layout_ = layout
         self.percent_ = percent
 
+    #def to_dict(self):
     def toJson(self):
         dl = {
                 'layout': self.layout_.name,
@@ -65,53 +66,57 @@ class desktopLayout:
 
 class configFile:
     def __init__(self):
-        self.desktopLayouts_ = {}
         self.filename_ = os.path.join(os.environ['HOME'], '.config/y2awm/config.json')
+        self.config_ = None
         self.__load()
 
     def __load(self):
-        self.config_ = {}
+        self.config_ = None
         if not os.access(self.filename_, os.R_OK | os.W_OK):
             logging.debug(f'file does not exist: {self.filename_}')
             return
+        configInput = None
         f = open(self.filename_)
-        config = json.load(f)
+        try:
+            configInput = json.load(f)
+        except json.JSONDecodeError:
+            logging.warning(f'invalid JSON file: {self.filename_}')
         f.close()
-        self.desktopLayouts_ = {}
-        for dl in config['desktopLayouts']:
-            spaceIdx = dl['spaceIdx']
-            self.desktopLayouts_[spaceIdx] = desktopLayout.fromJson(dl['desktopLayout'])
+        if configInput is None:
+            return
+        self.config_ = {}
+        for (displayReference, spaceIdxToDesktopLayoutMap) in configInput.items():
+            self.config_[displayReference] = {}
+            for (spaceIdx, dl) in spaceIdxToDesktopLayoutMap.items():
+                self.config_[displayReference][spaceIdx] = desktopLayout.fromJson(dl)
 
     def __write(self):
-        config = {
-                'desktopLayouts': [],
-                }
-        for (spaceIdx, dl) in self.desktopLayouts_.items():
-            jsonDL = {
-                    'spaceIdx': spaceIdx,
-                    'desktopLayout': dl.toJson(),
-                    }
-            config['desktopLayouts'].append(jsonDL)
+        configOutput = {}
+        for (displayReference, spaceIdxToDesktopLayoutMap) in self.config_.items():
+            configOutput[displayReference] = {}
+            for (spaceIdx, dl) in spaceIdxToDesktopLayoutMap.items():
+                configOutput[displayReference][spaceIdx] = dl.toJson()
 
         os.makedirs(os.path.dirname(self.filename_), mode=0o755, exist_ok=True)
         with open(self.filename_, "w") as outfile:
-            json.dump(config, outfile)
+            json.dump(configOutput, outfile)
 
-    def getDesktopLayout(self, spaceIdx):
-        if spaceIdx not in self.desktopLayouts_:
+    def getDesktopLayout(self, displayReference, spaceIdx):
+        if self.config_ is None or displayReference not in self.config_ or spaceIdx not in self.config_[displayReference]:
             return desktopLayout()
-        return self.desktopLayouts_[spaceIdx]
+        return self.config_[displayReference][spaceIdx]
 
-    def setDesktopLayout(self, spaceIdx, layout):
-        if spaceIdx not in self.desktopLayouts_:
-            self.desktopLayouts_[spaceIdx] = desktopLayout()
-        self.desktopLayouts_[spaceIdx].layout_ = layout
+    def setDesktopLayout(self, displayReference, spaceIdx, layout):
+        if self.config_ is None:
+            self.config_ = {}
+        if displayReference not in self.config_:
+            self.config_[displayReference] = {}
+        self.config_[displayReference][spaceIdx] = desktopLayout(layout)
         self.__write()
 
-    def setDesktopLayoutPercent(self, spaceIdx, percent):
-        if spaceIdx not in self.desktopLayouts_:
-            self.desktopLayouts_[spaceIdx] = desktopLayout()
-        self.desktopLayouts_[spaceIdx].percent_ = percent
+    def setDesktopLayoutPercent(self, displayReference, spaceIdx, percent):
+        dl = self.getDesktopLayout(displayReference, spaceIdx)
+        dl[spaceIdx].percent_ = percent
         self.__write()
 
 class yabaiQuick:
@@ -130,6 +135,7 @@ class yabaiQuick:
         self.focusDisplayIdx_ = None
         self.focusSpaceIdx_ = None
         self.focusWindowId_ = None
+        self.spaceIdxToDisplay_ = {}
         self.spaceIdxToWindowIds_ = {}
         self.windowIdToProperties_ = {}
 
@@ -143,6 +149,8 @@ class yabaiQuick:
             if display['has-focus']:
                 self.focusDisplayIdx_ = display['index']
                 # also, use the right config
+            for spaceIdx in display['spaces']:
+                self.spaceIdxToDisplay_[spaceIdx] = display
         # load from queries
         self.windows_ = json.loads(self.__windows())
         # walk windows
@@ -200,6 +208,19 @@ class yabaiQuick:
     def __focusWindow(self, windowId):
         self.__window(['--focus', str(windowId)])
 
+    def __generateDisplayReference(self, spaceIdx):
+        display = self.spaceIdxToDisplay_[spaceIdx]
+        return f'{display["uuid"]}_{display["frame"]["w"]}x{display["frame"]["h"]}'
+
+    def __getDesktopLayout(self, spaceIdx):
+        return self.configFile_.getDesktopLayout(self.__generateDisplayReference(spaceIdx), spaceIdx)
+
+    def __setDesktopLayout(self, spaceIdx, layout):
+        return self.configFile_.setDesktopLayout(self.__generateDisplayReference(spaceIdx), spaceIdx, layout)
+
+    def __setDesktopLayoutPercent(self, spaceIdx, percent):
+        return self.configFile_.setDesktopLayoutPercent(self.__generateDisplayReference(spaceIdx), spaceIdx, percent)
+
     def setFocus(self, nextWindow):
         windows = self.spaceIdxToWindowIds_[self.focusSpaceIdx_]
         if self.focusWindowId_ is None and len(windows) > 0:
@@ -225,7 +246,7 @@ class yabaiQuick:
         if len(windowIds) == 1:
             self.__grid(windowIds[0], f'1:1:0:0:1:1')
             return
-        dl = self.configFile_.getDesktopLayout(spaceIdx)
+        dl = self.__getDesktopLayout(spaceIdx)
         #print('dl:', dl)
         if dl.isDisabled():
             return
@@ -291,19 +312,19 @@ class yabaiQuick:
 
     def setLayout(self, layout):
         if layout[0] == 'c':
-            self.configFile_.setDesktopLayout(self.focusSpaceIdx_, desktopLayout.Layout.columns)
+            self.__setDesktopLayout(self.focusSpaceIdx_, desktopLayout.Layout.columns)
         elif layout[0] == 'l':
-            self.configFile_.setDesktopLayout(self.focusSpaceIdx_, desktopLayout.Layout.left)
+            self.__setDesktopLayout(self.focusSpaceIdx_, desktopLayout.Layout.left)
         elif layout[0] == 'r':
-            self.configFile_.setDesktopLayout(self.focusSpaceIdx_, desktopLayout.Layout.right)
+            self.__setDesktopLayout(self.focusSpaceIdx_, desktopLayout.Layout.right)
         elif layout[0] == 'd':
-            self.configFile_.setDesktopLayout(self.focusSpaceIdx_, desktopLayout.Layout.disabled)
+            self.__setDesktopLayout(self.focusSpaceIdx_, desktopLayout.Layout.disabled)
         elif layout[0] == 'e':
-            self.configFile_.setDesktopLayout(self.focusSpaceIdx_, desktopLayout.Layout.even)
+            self.__setDesktopLayout(self.focusSpaceIdx_, desktopLayout.Layout.even)
         self.arrange(True)
 
     def setPercent(self, percent):
-        dl = self.configFile_.getDesktopLayout(self.focusSpaceIdx_)
+        dl = self.__getDesktopLayout(self.focusSpaceIdx_)
         if not dl.isLeft() and not dl.isRight():
             return
         newPercent = dl.percent_
@@ -324,11 +345,11 @@ class yabaiQuick:
             newPercent = 1
         elif newPercent == 100:
             newPercent = 99
-        self.configFile_.setDesktopLayoutPercent(self.focusSpaceIdx_, newPercent)
+        self.__setDesktopLayoutPercent(self.focusSpaceIdx_, newPercent)
         self.arrange()
 
     def moveWindow(self, windowId, destination):
-        dl = self.configFile_.getDesktopLayout(self.focusSpaceIdx_)
+        dl = self.__getDesktopLayout(self.focusSpaceIdx_)
         windowIds = self.spaceIdxToWindowIds_[self.focusSpaceIdx_]
         idx = windowIds.index(windowId)
         if dl.isColumns():
