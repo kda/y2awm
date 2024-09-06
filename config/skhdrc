@@ -1,3 +1,7 @@
+# Config done elsewhere.
+# 1. Create as many spaces as desired: ^<up> (click +)
+# 2. Add Alt-<number> bindings for selecting space  by changing the bindings in System Settings/Keyboard/Keyboard Shortcuts.../App Shortcuts/Mission Control
+
 # change window focus
 alt - j: ${HOME}/local/scripts/y2awm.py --focus next
 alt - k: ${HOME}/local/scripts/y2awm.py --focus prev
@@ -20,12 +24,9 @@ alt - h: ${HOME}/local/scripts/y2awm.py --percent -5
 alt - l: ${HOME}/local/scripts/y2awm.py --percent +5
 
 # move windows
-alt + shift - h: ${HOME}/local/scripts/y2awm.py --move west
-alt + shift - l: ${HOME}/local/scripts/y2awm.py --move east
-alt + shift - j: ${HOME}/local/scripts/y2awm.py --move south
-alt + shift - k: ${HOME}/local/scripts/y2awm.py --move north
-#alt + shift - j: ${HOME}/local/scripts/y2awm.py --move next
-#alt + shift - k: ${HOME}/local/scripts/y2awm.py --move prev
+alt + shift - j: ${HOME}/local/scripts/y2awm.py --move next
+alt + shift - k: ${HOME}/local/scripts/y2awm.py --move prev
+alt + ctrl - return: ${HOME}/local/scripts/y2awm.py --move primary
 
 # move window to another desktop
 # TODO: Place window last (done?)
@@ -48,9 +49,7 @@ alt - 0x1E: ${HOME}/local/scripts/y2awm.py --size right
 alt + shift - t: ${HOME}/local/scripts/y2awm.py --size top
 alt + shift - b: ${HOME}/local/scripts/y2awm.py --size bottom
 
-# TODO: add methods to pick workspace (desktop) beyond defaults ctrl-number
-
-# Awesome Completeness
-# TODO: restart yabai/skhd
-# TODO: move window to primary position
-
+# Restart yabai AND skhd
+alt + ctrl - r: yabai --restart-service; skhd --restart-service
+# Reload the skhd map
+alt - r: skhd --reload

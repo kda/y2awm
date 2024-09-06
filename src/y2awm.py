@@ -106,18 +106,25 @@ class configFile:
             return desktopLayout()
         return self.config_[displayReference][spaceIdx]
 
-    def setDesktopLayout(self, displayReference, spaceIdx, layout):
+    def __ensureDisplayReferenceExists(self, displayReference):
         if self.config_ is None:
             self.config_ = {}
         if displayReference not in self.config_:
             self.config_[displayReference] = {}
-        self.config_[displayReference][spaceIdx] = desktopLayout(layout)
+
+    def setDesktopLayout(self, displayReference, spaceIdx, layout):
+        self.__ensureDisplayReferenceExists(displayReference)
+        if spaceIdx in self.config_[displayReference]:
+            self.config_[displayReference][spaceIdx].layout_ = layout
+        else:
+            self.config_[displayReference][spaceIdx] = desktopLayout(layout)
         self.__write()
 
     def setDesktopLayoutPercent(self, displayReference, spaceIdx, percent):
-        dl = self.getDesktopLayout(displayReference, spaceIdx)
-        dl[spaceIdx].percent_ = percent
-        self.__write()
+        self.__ensureDisplayReferenceExists(displayReference)
+        if spaceIdx in self.config_[displayReference]:
+            self.config_[displayReference][spaceIdx].percent_ = percent
+            self.__write()
 
 class yabaiQuick:
     def __init__(self):
@@ -346,81 +353,26 @@ class yabaiQuick:
 
     def moveWindow(self, windowId, destination):
         dl = self.__getDesktopLayout(self.focusSpaceIdx_)
+        if dl.isDisabled():
+            return
         windowIds = self.spaceIdxToWindowIds_[self.focusSpaceIdx_]
         idx = windowIds.index(windowId)
-        if dl.isColumns():
-            if destination[0] == 'w':
-                if idx > 0:
-                    windowIds[idx], windowIds[idx - 1] = windowIds[idx - 1], windowIds[idx]
-                    self.arrange()
-            elif destination[0] == 'e':
-                if idx < (len(windowIds) - 1):
-                    windowIds[idx], windowIds[idx + 1] = windowIds[idx + 1], windowIds[idx]
-                    self.arrange()
-        elif dl.isLeft():
-            if destination[0] == 'w':
-                if idx > 0:
-                    windowIds[idx], windowIds[0] = windowIds[0], windowIds[idx]
-                    self.arrange()
-            elif destination[0] == 'e':
-                if idx == 0:
-                    windowIds[idx], windowIds[idx + 1] = windowIds[idx + 1], windowIds[idx]
-                    self.arrange()
-            elif destination[0] == 'n':
-                if idx > 1:
-                    windowIds[idx], windowIds[idx - 1] = windowIds[idx - 1], windowIds[idx]
-                    self.arrange()
-            elif destination[0] == 's':
-                if idx > 0 and idx < (len(windowIds) - 1):
-                    windowIds[idx], windowIds[idx + 1] = windowIds[idx + 1], windowIds[idx]
-                    self.arrange()
-        elif dl.isRight():
-            if destination[0] == 'w':
-                if idx == (len(windowIds) - 1):
-                    windowIds[idx], windowIds[0] = windowIds[0], windowIds[idx]
-                    self.arrange()
-            elif destination[0] == 'e':
+        if destination == 'primary':
+            if dl.isRight():
                 if idx < (len(windowIds) - 1):
                     windowIds[idx], windowIds[-1] = windowIds[-1], windowIds[idx]
-                    self.arrange()
-            elif destination[0] == 'n':
-                if idx > 0 and idx < (len(windowIds) - 1):
-                    windowIds[idx], windowIds[idx - 1] = windowIds[idx - 1], windowIds[idx]
-                    self.arrange()
-            elif destination[0] == 's':
-                if idx < (len(windowIds) - 2):
-                    windowIds[idx], windowIds[idx + 1] = windowIds[idx + 1], windowIds[idx]
-                    self.arrange()
-        elif dl.isEven():
-            # TODO: fix problems when number of columns vary (len(windowIds) % (columns * rows) != 0)
-            x = self.windowIdToProperties_[windowId]['frame']['x']
-            y = self.windowIdToProperties_[windowId]['frame']['y']
-            if destination[0] == 'w':
-                swapIdx = idx - 1
-                swapId = windowIds[swapIdx]
-                if swapIdx >= 0 and x > self.windowIdToProperties_[swapId]['frame']['x'] and y == self.windowIdToProperties_[swapId]['frame']['y']:
-                    windowIds[idx], windowIds[idx - 1] = windowIds[idx - 1], windowIds[idx]
-                    self.arrange()
-            elif destination[0] == 'e':
-                swapIdx = idx + 1
-                swapId = windowIds[swapIdx]
-                if idx < (len(windowIds) - 1) and x < self.windowIdToProperties_[swapId]['frame']['x'] and y == self.windowIdToProperties_[swapId]['frame']['y']:
-                    windowIds[idx], windowIds[swapIdx] = windowIds[swapIdx], windowIds[idx]
-                    self.arrange()
-            elif destination[0] == 'n':
-                for swapIdx  in range(idx - 1, -1, -1):
-                    swapId = windowIds[swapIdx]
-                    if self.windowIdToProperties_[swapId]['frame']['y'] < y and x == self.windowIdToProperties_[swapId]['frame']['x']:
-                        windowIds[idx], windowIds[swapIdx] = windowIds[swapIdx], windowIds[idx]
-                        self.arrange()
-                        break
-            elif destination[0] == 's':
-                for swapIdx  in range(idx + 1, len(windowIds)):
-                    swapId = windowIds[swapIdx]
-                    if y < self.windowIdToProperties_[swapId]['frame']['y'] and x == self.windowIdToProperties_[swapId]['frame']['x']:
-                        windowIds[idx], windowIds[swapIdx] = windowIds[swapIdx], windowIds[idx]
-                        self.arrange()
-                        break
+            else:
+                if idx > 0:
+                    windowIds[idx], windowIds[0] = windowIds[0], windowIds[idx]
+            self.arrange()
+        elif destination[0] == 'n':
+            if idx < (len(windowIds) - 1):
+                windowIds[idx], windowIds[idx + 1] = windowIds[idx + 1], windowIds[idx]
+                self.arrange()
+        elif destination[0] == 'p':
+            if idx > 0:
+                windowIds[idx], windowIds[idx - 1] = windowIds[idx - 1], windowIds[idx]
+                self.arrange()
 
     def moveFocusedWindow(self, destination):
         self.moveWindow(self.focusWindowId_, destination)
@@ -465,7 +417,7 @@ def main():
     parser.add_argument('-d', '--debug', help='debug mode', action='store_true')
     parser.add_argument('-f', '--focus', help='change focus window', choices=['n', 'next', 'p', 'prev'])
     parser.add_argument('-l', '--layout', help='layout windows with: left(main), right(main), columns, even, disabled', choices=['l', 'left', 'r', 'right', 'c', 'columns', 'd', 'disabled', 'e', 'even'])
-    parser.add_argument('-m', '--move', help='move focused window: west, east, north, south', choices=['w', 'west', 'e', 'east', 'n', 'north', 's', 'south'])
+    parser.add_argument('-m', '--move', help='move focused window: next, prev, primary', choices=['n', 'next', 'p', 'prev', 'primary'])
     parser.add_argument('-p', '--percent', help='percent that main window occupies (only useful for left and right layouts) (prefix with \'+\' or \'-\' to adjust from current value)', type=percentOrPercentAdjustment)
     parser.add_argument('-s', '--size', help='size (and position) window quickly: full(screen), left(half), right(half), top(half), bottom(half) (Note: "full(screen)" is not the same as MacOS Fullscreen, but rather "whole" screen, but still a normal window.)', choices=['f', 'full', 'l', 'left', 'r', 'right', 't', 'top', 'b', 'bottom'])
     parser.add_argument('-wc', '--window_created', help='window created: pass window id and arrange based on new window.', type=int)
